@@ -1,0 +1,89 @@
+#!/bin/bash
+
+function setup() {
+    if [[ -z $1 ]] || [[ -z $2 ]] || [[ -z $3 ]]; then
+        echo "Missing arguments"
+        return;
+    fi
+
+    local executable_name=$1
+    local url=$2
+    local cmd=$3
+    local device_name=$4
+    local mountpoint=$5
+    local package=$(echo $url | awk -F '/' '{print $NF}')
+
+    if [[ -n "$device_name" ]] && [[ -n "$mountpoint" ]]; then
+        mkdir -p $mountpoint && \
+        mkfs -t ext4 /dev/$device_name && \
+        echo "/dev/$device_name $mountpoint ext4 defaults 0 0" >> /etc/fstab && \
+        mount -a && \
+        systemctl daemon-reload && \
+        sleep 2
+    fi
+
+    case "$executable_name" in
+        nethermind)
+            wget $url && \
+            unzip $package -d ~ && \
+            rm $package && \
+            mv $(find ~ -maxdepth 3 -type f -executable -name Nethermind.Runner) /usr/local/bin/$executable_name
+            ;;
+        nimbus)
+            wget $url && \
+            tar -zxvf $package -C ~ && \
+            rm $package && \
+            mv $(find ~ -maxdepth 3 -type f -executable -name nimbus_beacon_node) /usr/local/bin/$executable_name
+            ;;
+        prysm)
+            wget $url && \
+            chmod +x $package && \
+            mv $package /usr/local/bin/$executable_name
+            ;;
+        teku|besu)
+            apt install -y default-jre && \
+            wget $url && \
+            tar -zxvf $package -C ~ && \
+            rm $package && \
+            ln -s $(find ~ -maxdepth 3 -type f -executable -name $executable_name) /usr/local/bin/
+            ;;
+        *) # the other clients (geth/erigon/reth etc) should have a standard setup
+            wget $url && \
+            tar -zxvf $package -C ~ && \
+            rm $package && \
+            mv $(find ~ -maxdepth 3 -type f -executable -name $executable_name) /usr/local/bin
+            ;;
+    esac
+
+    cat <<EOF >>/usr/lib/systemd/system/$executable_name.service
+[Unit]
+Description=[$executable_name] Ethereum Client
+After=syslog.target network.target
+
+[Service]
+User=root
+Group=root
+Environment=HOME=/root
+Type=simple
+ExecStart=$cmd
+KillMode=process
+KillSignal=SIGINT
+TimeoutStopSec=90
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload && \
+    systemctl enable $executable_name && \
+    systemctl start $executable_name
+}
+
+apt upgrade -y && apt update -y && apt install -y zip
+
+# Setup all the nodes
+%{ for client in CLIENTS ~}
+    setup ${client.name} ${client.package_url} "${client.cmd}" "${client.ebs.device_name}" "${client.ebs.mountpoint}"
+%{ endfor ~}
