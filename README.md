@@ -87,9 +87,6 @@ module "nodes" {
 }
 ```
 
-
-
-
 ## License
 MIT Licensed. See [LICENSE](./LICENSE) for full details.
 
