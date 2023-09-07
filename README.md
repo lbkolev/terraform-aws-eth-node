@@ -2,11 +2,14 @@
 ### <p align="center">Spin up an ETH client on AWS</p>
 
 - The deployment takes no more than two minutes
+- The default OS the nodes get configured on is debian12
+- All clients are managed by systemd
+
 - The module takes care of the:
   - EC2's configuration
   - creation & management of the volumes that'll hold the chains' data
   - mounting of the volumes
-  - the installation & configuration of the specified ethereum node(s) 
+  - the installation & configuration of the specified ethereum node(s)
   - EC2's security group
 
 - Full examples can be found in the [examples](./examples/) directory.

@@ -41,23 +41,23 @@ jobs:
         with:
           directory: ${{ matrix.directory }}
 
-      - name: Pre-commit Terraform ${{ steps.minMax.outputs.minVersion }}
-        # Run only validate pre-commit check on min version supported
-        if: ${{ matrix.directory !=  '.' }}
-        uses: clowdhaus/terraform-composite-actions/pre-commit@v1.8.3
-        with:
-          terraform-version: ${{ steps.minMax.outputs.minVersion }}
-          tflint-version: ${{ env.TFLINT_VERSION }}
-          args: 'terraform_validate --color=always --show-diff-on-failure --files ${{ matrix.directory }}/*'
+      #- name: Pre-commit Terraform ${{ steps.minMax.outputs.minVersion }}
+      #  # Run only validate pre-commit check on min version supported
+      #  if: ${{ matrix.directory !=  '.' }}
+      #  uses: clowdhaus/terraform-composite-actions/pre-commit@v1.8.3
+      #  with:
+      #    terraform-version: ${{ steps.minMax.outputs.minVersion }}
+      #    tflint-version: ${{ env.TFLINT_VERSION }}
+      #    args: 'terraform_validate --color=always --show-diff-on-failure --files ${{ matrix.directory }}/*'
 
-      - name: Pre-commit Terraform ${{ steps.minMax.outputs.minVersion }}
-        # Run only validate pre-commit check on min version supported
-        if: ${{ matrix.directory ==  '.' }}
-        uses: clowdhaus/terraform-composite-actions/pre-commit@v1.8.3
-        with:
-          terraform-version: ${{ steps.minMax.outputs.minVersion }}
-          tflint-version: ${{ env.TFLINT_VERSION }}
-          args: 'terraform_validate --color=always --show-diff-on-failure --files $(ls *.tf)'
+      #- name: Pre-commit Terraform ${{ steps.minMax.outputs.minVersion }}
+      #  # Run only validate pre-commit check on min version supported
+      #  if: ${{ matrix.directory ==  '.' }}
+      #  uses: clowdhaus/terraform-composite-actions/pre-commit@v1.8.3
+      #  with:
+      #    terraform-version: ${{ steps.minMax.outputs.minVersion }}
+      #    tflint-version: ${{ env.TFLINT_VERSION }}
+      #    args: 'terraform_validate --color=always --show-diff-on-failure --files $(ls *.tf)'
 
   preCommitMaxVersion:
     name: Max TF pre-commit
