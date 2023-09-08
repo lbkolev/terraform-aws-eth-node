@@ -35,6 +35,6 @@ No inputs.
 
 | Name | Description |
 |------|-------------|
-| <a name="output_key_pair"></a> [key\_pair](#output\_key\_pair) | n/a |
-| <a name="output_nodes"></a> [nodes](#output\_nodes) | n/a |
+| <a name="output_key_pair"></a> [key\_pair](#output\_key\_pair) | Details around the SSH key pair for the manager node |
+| <a name="output_node"></a> [node](#output\_node) | Details around the EC2 |
 <!-- END_TF_DOCS -->
