@@ -60,7 +60,6 @@ module "nodes" {
       package_url = "https://hyperledger.jfrog.io/artifactory/besu-binaries/besu/23.7.2/besu-23.7.2.tar.gz"
       cmd         = "besu --data-path=/besu"
 
-      create_ebs = true
       ebs = {
         device_name = "xvdb"
         type        = "gp3"
@@ -73,11 +72,10 @@ module "nodes" {
       package_url = "https://github.com/status-im/nimbus-eth2/releases/download/v23.8.0/nimbus-eth2_Linux_amd64_23.8.0_d014d0a5.tar.gz"
       cmd         = "nimbus --data-dir=/nimbus"
 
-      create_ebs = true
       ebs = {
         device_name = "xvdc"
         type        = "gp3"
-        size        = 1000 # GB
+        size        = 100 # GB
         mountpoint  = "/nimbus"
       }
     }

@@ -90,3 +90,10 @@ resource "aws_volume_attachment" "this" {
   volume_id   = each.value.external_volume_id == null ? aws_ebs_volume.this[each.key].id : each.value.external_volume_id
   instance_id = aws_instance.this.id
 }
+
+resource "aws_ec2_instance_state" "this" {
+  count = var.ec2.state == null ? 0 : 1
+
+  instance_id = aws_instance.this.id
+  state       = var.ec2.state
+}
