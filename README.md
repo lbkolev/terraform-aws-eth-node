@@ -11,7 +11,7 @@
 - Full examples can be found in the [examples](./examples/) directory.
 > :warning: Be mindful with the security group's configuration. All the examples are simplified to allow all external traffic, which in most cases isn't recommended.
 
-## Example with Reth & Lighthouse running sepolia
+## Example with Reth & Lighthouse 
 ```hcl
 module "nodes" {
   source = "../../"
