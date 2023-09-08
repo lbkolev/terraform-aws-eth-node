@@ -14,12 +14,19 @@ function setup() {
     local package=$(echo $url | awk -F '/' '{print $NF}')
 
     if [[ -n "$device_name" ]] && [[ -n "$mountpoint" ]]; then
-        mkdir -p $mountpoint && \
-        mkfs -t ext4 /dev/$device_name && \
+        mkdir -p $mountpoint
+
+        # determine if we're remounting a block with an already existing FS or creating a new one
+        # otherwise we'll overwrite the existing content of the block by recreating the FS
+        if [[ $(blkid /dev/$device_name) ]]; then
+            echo "Found existing filesystem on /dev/$device_name"
+        else
+            echo "Creating new filesystem (ext4) on /dev/$device_name"
+            mkfs -t ext4 /dev/$device_name
+        fi
+
         echo "/dev/$device_name $mountpoint ext4 defaults 0 0" >> /etc/fstab && \
         mount -a && \
-        systemctl daemon-reload && \
-        sleep 2
     fi
 
     case "$executable_name" in
