@@ -2,7 +2,6 @@
 ### <p align="center">Spin up ETH clients. On AWS. In a minute.</p>
 
 - The deployment takes no more than a minute
-- The default OS is `debian12`
 - All clients are managed through systemd
 
 - The module takes care of the:
