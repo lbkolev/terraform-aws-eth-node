@@ -50,7 +50,7 @@ resource "aws_ebs_volume" "this" {
 }
 
 resource "aws_instance" "this" {
-  depends_on = [aws_security_group.this, aws_ebs_volume.this]
+  depends_on = [aws_security_group.this]
 
   ami                    = data.aws_ami.this.id
   instance_type          = var.ec2.type == null ? "t2.micro" : var.ec2.type
@@ -74,7 +74,8 @@ resource "aws_instance" "this" {
 
   lifecycle {
     ignore_changes = [
-      ebs_block_device
+      ebs_block_device,
+      associate_public_ip_address
     ]
   }
 
@@ -84,7 +85,8 @@ resource "aws_instance" "this" {
 }
 
 resource "aws_volume_attachment" "this" {
-  for_each = { for index, client in var.clients : client.name => client.ebs if client.ebs != null }
+  for_each   = { for index, client in var.clients : client.name => client.ebs if client.ebs != null && contains(["pending", "running"], var.ec2.state) }
+  depends_on = [aws_instance.this]
 
   device_name = each.value.device_name
   volume_id   = each.value.external_volume_id == null ? aws_ebs_volume.this[each.key].id : each.value.external_volume_id
