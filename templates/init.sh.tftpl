@@ -1,18 +1,53 @@
 #!/bin/bash
 
+function wait_for_volume {
+    local volume_id="$1"
+    local status="$2"
+    local max_retries="$3"
+    local retries=0
+
+    while [[ $retries -lt $max_retries ]]; do
+        # Describe the volume and extract the State value
+        local state=$(aws ec2 describe-volumes --volume-ids "$volume_id" --query 'Volumes[0].State' --output text)
+        
+        if [[ "$state" == "$status" ]]; then
+            return 0 
+        fi
+
+        ((retries++))
+        sleep 5
+    done
+
+    return 1
+}
+
 function setup() {
     if [[ -z $1 ]] || [[ -z $2 ]] || [[ -z $3 ]]; then
         echo "Missing arguments"
         return;
     fi
 
-    local executable_name=$1
+    local client_name=$1
     local url=$2
     local cmd=$3
     local device_name=$4
     local mountpoint=$5
-    local package=$(echo $url | awk -F '/' '{print $NF}')
+    local instance_id=$6
 
+    local package=$(echo $url | awk -F '/' '{print $NF}')
+    local volume_id=$(aws ec2 describe-volumes \
+        --filters "Name=tag:Name,Values=$client_name" \
+        --query "Volumes[0].VolumeId" \
+        --output text)
+
+    # attach the EBS volume to the instance
+    wait_for_volume $volume_id "available" 10 || exit "Timed out waiting for $volume_id to become available"
+    aws ec2 attach-volume \
+        --volume-id $volume_id \
+        --instance-id $instance_id \
+        --device /dev/$device_name || exit "Couldn't attach $volume_id to $instance_id as /dev/$device_name"
+    
+    wait_for_volume $volume_id "in-use" 10 || exit "Timed out waiting for $volume_id to become available"
     if [[ -n "$device_name" ]] && [[ -n "$mountpoint" ]]; then
         # determine if we're remounting a block with an already existing FS or creating a new one
         # required so we don't annihilate the existing block content by recreating the FS
@@ -28,42 +63,42 @@ function setup() {
         mount -a 
     fi
 
-    case "$executable_name" in
+    case "$client_name" in
         nethermind)
             wget $url && \
             unzip $package -d ~ && \
             rm $package && \
-            mv $(find ~ -maxdepth 3 -type f -executable -name Nethermind.Runner) /usr/local/bin/$executable_name
+            mv $(find ~ -maxdepth 3 -type f -executable -name Nethermind.Runner) /usr/local/bin/$client_name
             ;;
         nimbus)
             wget $url && \
             tar -zxvf $package -C ~ && \
             rm $package && \
-            mv $(find ~ -maxdepth 3 -type f -executable -name nimbus_beacon_node) /usr/local/bin/$executable_name
+            mv $(find ~ -maxdepth 3 -type f -executable -name nimbus_beacon_node) /usr/local/bin/$client_name
             ;;
         prysm)
             wget $url && \
             chmod +x $package && \
-            mv $package /usr/local/bin/$executable_name
+            mv $package /usr/local/bin/$client_name
             ;;
         teku|besu)
             apt install -y default-jre && \
             wget $url && \
             tar -zxvf $package -C ~ && \
             rm $package && \
-            ln -s $(find ~ -maxdepth 3 -type f -executable -name $executable_name) /usr/local/bin
+            ln -s $(find ~ -maxdepth 3 -type f -executable -name $client_name) /usr/local/bin
             ;;
         *) # the other clients (geth/erigon/reth etc) should have a standard setup
             wget $url && \
             tar -zxvf $package -C ~ && \
             rm $package && \
-            mv $(find ~ -maxdepth 3 -type f -executable -name $executable_name) /usr/local/bin
+            mv $(find ~ -maxdepth 3 -type f -executable -name $client_name) /usr/local/bin
             ;;
     esac
 
-    cat <<EOF >>/usr/lib/systemd/system/$executable_name.service
+    cat <<EOF >>/usr/lib/systemd/system/$client_name.service
 [Unit]
-Description=[$executable_name] Ethereum Client
+Description=[$client_name] Ethereum Client
 After=syslog.target network.target
 
 [Service]
@@ -83,13 +118,19 @@ WantedBy=multi-user.target
 EOF
 
     systemctl daemon-reload && \
-    systemctl enable $executable_name && \
-    systemctl start $executable_name
+    systemctl enable $client_name && \
+    systemctl start $client_name
 }
 
+# ----
 apt upgrade -y && apt update -y && apt install -y zip
+
+instance_id=$(wget \
+    --header "X-aws-ec2-metadata-token: $(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 600')" \
+    -q -O - http://169.254.169.254/latest/meta-data/instance-id)
 
 # Setup all the nodes
 %{ for client in CLIENTS ~}
-    setup ${client.name} ${client.package_url} "${client.cmd}" "${client.ebs.device_name}" "${client.ebs.mountpoint}"
+    setup ${client.name} ${client.package_url} "${client.cmd}" "${client.ebs.device_name}" "${client.ebs.mountpoint}" "$instance_id"
 %{ endfor ~}
+# ----

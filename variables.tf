@@ -41,6 +41,7 @@ variable "compute" {
     disable_api_stop            = optional(bool)
     disable_api_termination     = optional(bool)
     key_name                    = optional(string)
+    max_instance_lifetime       = optional(number)
   })
   description = "The EC2 configuration"
   default = {
@@ -50,7 +51,7 @@ variable "compute" {
   }
 
   validation {
-    condition     = contains(["running", "stopped"], var.ec2.state)
+    condition     = contains(["running", "stopped"], var.compute.state)
     error_message = "Invalid EC2 state. Valid states are: running, stopped"
   }
 }
@@ -65,15 +66,8 @@ variable "clients" {
       ebs = optional(object({
         device_name = string
         mountpoint  = string
-
-        # Required if we're attaching an external EBS
-        attach_external_ebs = optional(bool)
-        external_volume_id  = optional(string)
-
-        # Required if we're creating an EBS
-        ebs_name = optional(string)
-        type     = optional(string)
-        size     = optional(number)
+        type        = string
+        size        = number
       }))
   }))
   description = "The nodes to deploy on the EC2"

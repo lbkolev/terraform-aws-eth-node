@@ -29,19 +29,11 @@ resource "aws_security_group" "this" {
   }
 }
 
-
-resource "aws_iam_role" "this" {
-  name = var.name
-  /*
-   * Required for SSM Access
-   */
-  assume_role_policy  = data.aws_iam_policy_document.policy_document.json
-  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"]
-}
-
-
+/*
+ * Volumes used to hold clients' data
+ */
 resource "aws_ebs_volume" "this" {
-  for_each = { for index, client in var.clients : client.name => client.ebs if client.ebs.attach_external_ebs != true }
+  for_each = { for index, client in var.clients : client.name => client.ebs }
 
   availability_zone = data.aws_subnet.this.availability_zone
   size              = try(each.value.size, null)
@@ -60,22 +52,20 @@ resource "aws_ebs_volume" "this" {
   }
 }
 
-
 resource "aws_launch_template" "this" {
   depends_on = [aws_security_group.this]
 
   name                    = var.name
   image_id                = data.aws_ami.this.id
-  vpc_security_group_ids  = var.compute.security_group_ids == null ? [aws_security_group.this[0].id] : concat(var.compute.security_group_ids, [aws_security_group.this[0].id])
-  instance_type           = var.autoscaling.instance_type
+  instance_type           = var.compute.type
   ebs_optimized           = try(var.compute.ebs_optimized, null)
   key_name                = try(var.compute.key_name, null)
   disable_api_stop        = try(var.compute.disable_api_stop, null)
   disable_api_termination = try(var.compute.disable_api_termination, null)
 
-  user_data = templatefile("${path.module}/templates/init.sh.tftpl", {
+  user_data = base64encode(templatefile("${path.module}/templates/init.sh.tftpl", {
     CLIENTS = var.clients
-  })
+  }))
 
   iam_instance_profile {
     name = aws_iam_instance_profile.this.name
@@ -96,12 +86,30 @@ resource "aws_launch_template" "this" {
 
   network_interfaces {
     associate_public_ip_address = var.compute.associate_public_ip_address
+    security_groups             = var.compute.security_group_ids == null ? [aws_security_group.this[0].id] : concat(var.compute.security_group_ids, [aws_security_group.this[0].id])
   }
 
 
   tags = {
     Name        = var.name
-    Description = "Launch Template for ${var.name}'s EC2 instance(s)"
+    Description = "Launch Template for ${var.name}'s EC2 instance"
+  }
+}
+
+resource "aws_iam_role" "this" {
+  name = var.name
+  /*
+   * Required for SSM Access
+   */
+  assume_role_policy  = data.aws_iam_policy_document.policy_document.json
+  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"]
+
+  /*
+   * Required for EBS attachment
+   */
+  inline_policy {
+    name   = "AttachEBSVolumePolicy"
+    policy = data.aws_iam_policy_document.attach_ebs_volume_policy.json
   }
 }
 
@@ -110,57 +118,13 @@ resource "aws_iam_instance_profile" "this" {
   role = aws_iam_role.this.name
 }
 
-//resource "aws_instance" "this" {
-//  depends_on = [aws_security_group.this]
-//
-//  ami                    = data.aws_ami.this.id
-//  instance_type          = var.compute.type == null ? "t2.micro" : var.compute.type
-//  subnet_id              = var.subnet_id
-//  vpc_security_group_ids = var.compute.security_group_ids == null ? [aws_security_group.this[0].id] : concat(var.compute.security_group_ids, [aws_security_group.this[0].id])
-//
-//  availability_zone           = data.aws_subnet.this.availability_zone
-//  associate_public_ip_address = try(var.compute.associate_public_ip_address, null)
-//
-//  disable_api_stop        = try(var.compute.disable_api_stop, null)
-//  disable_api_termination = try(var.compute.disable_api_termination, null)
-//  ebs_optimized           = try(var.compute.ebs_optimized, null)
-//
-//  get_password_data = try(var.compute.get_password_data, null)
-//  hibernation       = try(var.compute.hibernation, null)
-//  key_name          = try(var.compute.key_name, null)
-//
-//  user_data = templatefile("${path.module}/templates/init.sh.tftpl", {
-//    CLIENTS = var.clients
-//  })
-//
-//  lifecycle {
-//    ignore_changes = [
-//      ebs_block_device,
-//      associate_public_ip_address
-//    ]
-//  }
-//
-//  tags = {
-//    Name = var.name
-//  }
-//}
-
-resource "aws_volume_attachment" "this" {
-  for_each   = { for index, client in var.clients : client.name => client.ebs if client.ebs != null && contains(["pending", "running"], var.compute.state) }
-  depends_on = [aws_instance.this]
-
-  device_name = each.value.device_name
-  volume_id   = each.value.external_volume_id == null ? aws_ebs_volume.this[each.key].id : each.value.external_volume_id
-  instance_id = aws_instance.this.id
-}
-
 resource "aws_autoscaling_group" "this" {
   name     = var.name
   min_size = 1
   max_size = 1
 
   vpc_zone_identifier   = [var.subnet_id]
-  max_instance_lifetime = var.autoscaling.instance_lifetime
+  max_instance_lifetime = try(var.compute.instance_lifetime, null)
   protect_from_scale_in = true
 
   launch_template {

@@ -17,8 +17,8 @@ module "nodes" {
   name      = "reth-lighthouse-sepolia"
   subnet_id = data.aws_subnets.this.ids[0]
 
-  ec2 = {
-    instance_type               = "t2.micro"
+  compute = {
+    instance_type               = "c4.xlarge"
     associate_public_ip_address = true
     key_name                    = module.key_pair.key_pair_name
   }
