@@ -1,11 +1,11 @@
 variable "name" {
   type        = string
-  description = "The generic name to apply across the different resources created in AWS"
+  description = "The generic name to apply across the different resources"
 }
 
 variable "subnet_id" {
   type        = string
-  description = "The subnet to deploy the EC2 in. Defaults to the first subnet returned by the data resource"
+  description = "The subnet to deploy the Autoscaling grp in"
 }
 
 variable "security_group" {
@@ -17,7 +17,7 @@ variable "security_group" {
     protocol    = string
     cidr_blocks = list(string)
   }))
-  description = "The security group rules to apply to the EC2"
+  description = "The security group rules to apply to the Autoscaling grp"
   default     = []
 }
 
@@ -25,7 +25,7 @@ variable "ami" {
   type = object({
     name = string
   })
-  description = "The base AMI to use for the EC2"
+  description = "The base AMI to use for the Autoscaling grp"
   default = {
     name = "debian-12-amd64-20230711-1438",
   }
@@ -70,7 +70,7 @@ variable "clients" {
         size        = number
       }))
   }))
-  description = "The nodes to deploy on the EC2"
+  description = "The list of ethereum clients to deploy"
 
   validation {
     condition     = length(var.clients) > 0
