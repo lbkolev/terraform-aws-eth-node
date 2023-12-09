@@ -15,7 +15,7 @@ function setup() {
 
     if [[ -n "$device_name" ]] && [[ -n "$mountpoint" ]]; then
         # determine if we're remounting a block with an already existing FS or creating a new one
-        # possibly preventing overwriting the existing content of the block by recreating the FS
+        # required so we don't annihilate the existing block content by recreating the FS
         if [[ $(blkid /dev/$device_name) ]]; then
             echo "Found existing filesystem on /dev/$device_name"
         else
@@ -51,7 +51,7 @@ function setup() {
             wget $url && \
             tar -zxvf $package -C ~ && \
             rm $package && \
-            ln -s $(find ~ -maxdepth 3 -type f -executable -name $executable_name) /usr/local/bin/
+            ln -s $(find ~ -maxdepth 3 -type f -executable -name $executable_name) /usr/local/bin
             ;;
         *) # the other clients (geth/erigon/reth etc) should have a standard setup
             wget $url && \

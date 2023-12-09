@@ -15,3 +15,15 @@ data "aws_ami" "this" {
     values = ["hvm"]
   }
 }
+
+data "aws_iam_policy_document" "policy_document" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    effect  = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}

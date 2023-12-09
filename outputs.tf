@@ -8,11 +8,6 @@ output "security_group" {
   description = "Security group created for the client(s)"
 }
 
-output "ec2" {
-  value       = aws_instance.this
-  description = "EC2 instance created for the client(s)"
-}
-
 output "ebs_attachment" {
   value       = aws_volume_attachment.this
   description = "EBS volume attachment(s) created for the client(s)"
