@@ -17,7 +17,7 @@ module "nodes" {
   name      = "geth-teku-mainnet"
   subnet_id = data.aws_subnets.this.ids[0]
 
-  ec2 = {
+  compute = {
     type                        = "m4.xlarge"
     associate_public_ip_address = true
     key_name                    = module.key_pair.key_pair_name

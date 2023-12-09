@@ -17,7 +17,7 @@ module "nodes" {
   name      = "besu-nimbus-mainnet"
   subnet_id = data.aws_subnets.this.ids[0]
 
-  ec2 = {
+  compute = {
     instance_type               = "m4.xlarge"
     associate_public_ip_address = true
     key_name                    = module.key_pair.key_pair_name
