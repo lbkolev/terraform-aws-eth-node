@@ -14,7 +14,7 @@ module "key_pair" {
 module "nodes" {
   source = "../../"
 
-  name      = "reth-lighthouse-sepolia"
+  name      = "sepolia_reth-lighthouse"
   subnet_id = data.aws_subnets.this.ids[0]
 
   compute = {
@@ -70,7 +70,7 @@ module "nodes" {
     {
       name        = "lighthouse"
       package_url = "https://github.com/sigp/lighthouse/releases/download/v4.4.1/lighthouse-v4.4.1-x86_64-unknown-linux-gnu-portable.tar.gz"
-      cmd         = "lighthouse bn --network=sepolia --datadir=/lighthouse --execution-jwt=/root/jwt.hex --execution-endpoint=http://127.0.0.1:8551 --disable-deposit-contract-sync --checkpoint-sync-url https://sepolia.checkpoint-sync.ethpandaops.io"
+      cmd         = "lighthouse bn --network=sepolia --datadir=/lighthouse --execution-jwt=/root/jwt.hex --execution-endpoint=http://127.0.0.1:8551 --disable-deposit-contract-sync --checkpoint-sync-url https://checkpoint-sync.sepolia.ethpandaops.io"
 
       ebs = {
         device_name = "xvdc"

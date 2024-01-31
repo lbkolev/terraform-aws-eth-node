@@ -11,6 +11,8 @@ function wait_for_volume {
         local state=$(aws ec2 describe-volumes --volume-ids "$volume_id" --query 'Volumes[0].State' --output text)
         
         if [[ "$state" == "$status" ]]; then
+            echo "Volume $volume_id is now $status"
+            sleep 5
             return 0 
         fi
 
@@ -18,6 +20,7 @@ function wait_for_volume {
         sleep 5
     done
 
+    echo "Volume $volume_id failed to become $status"
     return 1
 }
 
@@ -55,7 +58,7 @@ function setup() {
             echo "Found existing filesystem on /dev/$device_name"
         else
             echo "Creating new filesystem (ext4) on /dev/$device_name"
-            mkfs -t ext4 /dev/$device_name
+            mkfs.ext4 -F -J size=1024 /dev/$device_name
         fi
 
         mkdir -p $mountpoint && \

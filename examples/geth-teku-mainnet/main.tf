@@ -14,7 +14,7 @@ module "key_pair" {
 module "nodes" {
   source = "../../"
 
-  name      = "geth-teku-mainnet"
+  name      = "mainnet_geth-teku"
   subnet_id = data.aws_subnets.this.ids[0]
 
   compute = {

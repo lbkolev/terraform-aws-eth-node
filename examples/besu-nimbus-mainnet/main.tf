@@ -14,7 +14,7 @@ module "key_pair" {
 module "nodes" {
   source = "../../"
 
-  name      = "besu-nimbus-mainnet"
+  name      = "mainnet_besu-nimbus"
   subnet_id = data.aws_subnets.this.ids[0]
 
   compute = {
